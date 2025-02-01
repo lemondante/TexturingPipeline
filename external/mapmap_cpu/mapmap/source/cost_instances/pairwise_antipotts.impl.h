@@ -7,7 +7,7 @@
  * of the BSD license. See the LICENSE file for details.
  */
 
-#include "header/cost_instances/pairwise_antipotts.h"
+#include <mapmap/header/cost_instances/pairwise_antipotts.h>
 
 NS_MAPMAP_BEGIN
 
@@ -85,7 +85,7 @@ const
 {
     std::unique_ptr<PairwiseCosts<COSTTYPE, SIMDWIDTH>> uptr(new
         PairwiseAntipotts<COSTTYPE, SIMDWIDTH>(m_c));
-    return std::move(uptr);
+    return uptr;
 }
 
 /* ************************************************************************** */

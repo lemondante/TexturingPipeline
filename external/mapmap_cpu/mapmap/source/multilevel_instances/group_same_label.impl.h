@@ -7,16 +7,15 @@
  * of the BSD license. See the LICENSE file for details.
  */
 
-#include "header/multilevel_instances/group_same_label.h"
-
+#include <atomic>
 #include <algorithm>
 #include <queue>
 #include <iostream>
 
-#include "tbb/atomic.h"
-#include "tbb/blocked_range.h"
-#include "tbb/parallel_for.h"
-#include "tbb/parallel_do.h"
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_for_each.h>
+
+#include <mapmap/header/multilevel_instances/group_same_label.h>
 
 NS_MAPMAP_BEGIN
 
@@ -56,18 +55,24 @@ group_nodes(
     tbb::blocked_range<luint_t> node_range(0, num_nodes);
 
     /* use atomic locks for synchronizing access to nodes */
-    std::vector<tbb::atomic<char>> node_locks(num_nodes, 0u);
+    std::vector<std::atomic<char>> node_locks(num_nodes);
+    std::fill(node_locks.begin(), node_locks.end(), 0);
     node_in_group.resize(num_nodes);
     std::fill(node_in_group.begin(), node_in_group.end(), invalid_luint_t);
 
     /* create seed "queue" */
     std::vector<luint_t> qu(num_nodes);
     std::iota(std::begin(qu), std::end(qu), 0);
+#if __cplusplus > 201100L
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(qu.begin(), qu.end(), g);
+#else
     std::random_shuffle(qu.begin(), qu.end());
-
+#endif
 
     /* do BFSes from randomly selected seeds */
-    tbb::parallel_do(qu.begin(), qu.end(),
+    tbb::parallel_for_each(qu.begin(), qu.end(),
         [&](const luint_t& seed)
         {
             /* retrieve label common to this group */
@@ -87,7 +92,11 @@ group_nodes(
                 bfs.pop();
 
                 /* lock node */
-                while(node_locks[cur].compare_and_swap(1u, 0u) != 0u);
+                char atomic_lock = 0;
+                while(!node_locks[cur].compare_exchange_strong(atomic_lock, 1u))
+                {
+                    atomic_lock = 0;
+                };
 
                 /**
                  * smaller marker: another thread is already here or this

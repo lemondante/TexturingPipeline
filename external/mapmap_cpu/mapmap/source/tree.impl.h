@@ -7,19 +7,19 @@
  * of the BSD license. See the LICENSE file for details.
  */
 
-#include "header/tree.h"
+#include <mapmap/header/tree.h>
 
 #include <exception>
 #include <functional>
 #include <numeric>
 #include <iostream>
 
-#include "tbb/parallel_for.h"
-#include "tbb/blocked_range.h"
-#include "tbb/parallel_reduce.h"
-#include "tbb/parallel_scan.h"
+#include <oneapi/tbb/parallel_for.h>
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/parallel_reduce.h>
+#include <oneapi/tbb/parallel_scan.h>
 
-#include "header/parallel_templates.h"
+#include <mapmap/header/parallel_templates.h>
 
 NS_MAPMAP_BEGIN
 
@@ -170,7 +170,7 @@ finalize(
     tbb::parallel_scan(node_range, scan);
 
     /* save children in list and copy node degree */
-    std::vector<tbb::atomic<luint_t>> loc_offsets(m_graph_nodes);
+    std::vector<std::atomic<luint_t>> loc_offsets(m_graph_nodes);
     std::fill(loc_offsets.begin(), loc_offsets.end(), 0u);
     tbb::parallel_for(node_range,
         [&](const tbb::blocked_range<luint_t>& r)
@@ -183,7 +183,7 @@ finalize(
                 if ((my_parent != invalid_luint_t) && (my_parent != i))
                 {
                     const luint_t my_local_offset = loc_offsets[my_parent].
-                        fetch_and_increment();
+                        fetch_add((luint_t) 1);
                     const luint_t my_offset = m_children_offset[my_parent];
 
                     m_children_list[my_offset + my_local_offset] = i;

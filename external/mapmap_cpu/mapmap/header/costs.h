@@ -18,9 +18,9 @@
 #include <algorithm>
 #include <typeinfo>
 
-#include "header/defines.h"
-#include "header/vector_types.h"
-#include "header/vector_math.h"
+#include <mapmap/header/defines.h>
+#include <mapmap/header/vector_types.h>
+#include <mapmap/header/vector_math.h>
 
 NS_MAPMAP_BEGIN
 
@@ -132,7 +132,7 @@ public:
     ModeNotSupportedException(const std::string& err_msg);
     ~ModeNotSupportedException();
 
-    const char* what() const throw();
+    const char* what() const noexcept;
 
 protected:
     std::string m_err_msg;
@@ -140,6 +140,6 @@ protected:
 
 NS_MAPMAP_END
 
-#include "source/costs.impl.h"
+#include <mapmap/source/costs.impl.h>
 
 #endif /* __MAPMAP_COSTS_H_ */

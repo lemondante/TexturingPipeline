@@ -11,10 +11,7 @@
 #include <functional>
 #include <iostream>
 
-#include "tbb/tbb.h"
-
-
-#include "header/dynamic_programming.h"
+#include <mapmap/header/dynamic_programming.h>
 
 NS_MAPMAP_BEGIN
 
@@ -338,7 +335,6 @@ _s_t<COSTTYPE, SIMDWIDTH>
 CombinatorialDynamicProgramming<COSTTYPE, SIMDWIDTH, UNARY, PAIRWISE>::
 optimize(
     std::vector<_iv_st<COSTTYPE, SIMDWIDTH>>& solution)
-throw()
 {
     if(!this->data_complete())
         throw std::domain_error("Data for optimization problem "
@@ -519,7 +515,7 @@ CombinatorialDynamicProgramming<COSTTYPE, SIMDWIDTH, UNARY, PAIRWISE>::
 bottom_up_opt()
 {
     /* mark the number of unprocessed children atomically per node */
-    std::vector<tbb::atomic<luint_t>> unproc_children(
+    std::vector<std::atomic<luint_t>> unproc_children(
         this->m_tree->num_graph_nodes(), 0);
 
     /* fill child counter for all node's parents */
@@ -546,8 +542,8 @@ bottom_up_opt()
     queue.assign(m_leaf_ids.begin(), m_leaf_ids.end());
 
     int processed = 0;
-    tbb::parallel_do(queue.begin(), queue.end(),
-        [&](const luint_t n, tbb::parallel_do_feeder<luint_t>& feeder)
+    tbb::parallel_for_each(queue.begin(), queue.end(),
+        [&](const luint_t n, tbb::feeder<luint_t>& feeder)
         {
                 /* allocate memory */
 #if defined(BUILD_MEMORY_SAVE)
@@ -632,8 +628,8 @@ top_down_opt(
         });
 
     /* continue traversal */
-    tbb::parallel_do(queue.begin(), queue.end(),
-        [&](const luint_t n, tbb::parallel_do_feeder<luint_t>& feeder)
+    tbb::parallel_for_each(queue.begin(), queue.end(),
+        [&](const luint_t n, tbb::feeder<luint_t>& feeder)
         {
             /* retrieve current node */
             const TreeNode<COSTTYPE>& node =

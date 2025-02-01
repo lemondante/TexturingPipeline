@@ -14,8 +14,8 @@
 #include <memory>
 #include <exception>
 
-#include "header/defines.h"
-#include "header/vector_types.h"
+#include <mapmap/header/defines.h>
+#include <mapmap/header/vector_types.h>
 
 NS_MAPMAP_BEGIN
 
@@ -40,7 +40,7 @@ public:
     ~Graph();
 
     void add_edge(const luint_t node_a, const luint_t node_b,
-        const scalar_t<COSTTYPE> weight) throw();
+        const scalar_t<COSTTYPE> weight);
     const std::vector<GraphNode>& nodes() const;
     const luint_t num_nodes() const;
     const std::vector<luint_t>& inc_edges(const luint_t node) const;
@@ -78,6 +78,6 @@ protected:
 
 NS_MAPMAP_END
 
-#include "source/graph.impl.h"
+#include <mapmap/source/graph.impl.h>
 
 #endif /* __MAPMAP_GRAPH_H_ */

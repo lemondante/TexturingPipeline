@@ -7,7 +7,7 @@
  * of the BSD license. See the LICENSE file for details.
  */
 
-#include "header/parallel_templates.h"
+#include <mapmap/header/parallel_templates.h>
 
 #include <limits>
 
@@ -266,7 +266,7 @@ Histogram<VALTYPE, INDEXTYPE>::
 operator()(
     const tbb::blocked_range<INDEXTYPE>& r)
 {
-    m_histogram.resize(r.end());
+    m_histogram = std::vector<std::atomic<VALTYPE>>(r.end());
     std::fill(m_histogram.begin(), m_histogram.end(), 0);
 
     m_final_histogram.clear();

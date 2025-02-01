@@ -176,3 +176,5 @@ gen
 /resource/
 
 *.DS_Store
+
+build

@@ -13,9 +13,7 @@
 #include <memory>
 #include <vector>
 
-#include "header/multilevel.h"
-
-#include "tbb/mutex.h"
+#include <mapmap/header/multilevel.h>
 
 NS_MAPMAP_BEGIN
 
@@ -36,6 +34,6 @@ public:
 NS_MAPMAP_END
 
 /* include function implementations */
-#include "source/multilevel_instances/group_same_label.impl.h"
+#include <mapmap/source/multilevel_instances/group_same_label.impl.h>
 
 #endif /* __MAPMAP_GROUP_SAME_LABEL_H_ */

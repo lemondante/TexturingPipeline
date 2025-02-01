@@ -7,6 +7,7 @@
  * of the BSD license. See the LICENSE file for details.
  */
 
+#include <atomic>
 #include <vector>
 #include <queue>
 #include <utility>
@@ -15,18 +16,18 @@
 #include <iostream>
 #include <numeric>
 #include <algorithm>
+#include <random>
 
-#include "tbb/concurrent_queue.h"
-#include "tbb/concurrent_vector.h"
-#include "tbb/concurrent_unordered_set.h"
-#include "tbb/atomic.h"
-#include "tbb/task.h"
-#include "tbb/blocked_range.h"
-#include "tbb/parallel_for.h"
+#include <oneapi/tbb//task_group.h>
 
-#include "header/graph.h"
+#include <oneapi/tbb//concurrent_queue.h>
+#include <oneapi/tbb//concurrent_vector.h>
+#include <oneapi/tbb//concurrent_unordered_set.h>
+#include <oneapi/tbb//blocked_range.h>
+#include <oneapi/tbb//parallel_for.h>
 
-#include "dset.h"
+#include <mapmap/header/graph.h>
+#include <ext/dset/dset.h>
 
 NS_MAPMAP_BEGIN
 
@@ -43,18 +44,17 @@ NS_MAPMAP_BEGIN
 using complet = std::tuple<std::vector<luint_t>, luint_t, std::set<luint_t>>;
 
 template<typename COSTTYPE>
-class LazyBFSTask : public tbb::task
+class LazyBFSTask
 {
 public:
     LazyBFSTask(
         const luint_t start_node,
         Graph<COSTTYPE> * graph,
-        std::vector<tbb::atomic<uint_t>> * visited,
+        std::vector<std::atomic<uint_t>> * visited,
         std::vector<luint_t> * components,
-        tbb::atomic<luint_t> * nodes_left,
+        std::atomic<luint_t> * nodes_left,
         tbb::concurrent_vector<complet> * complet_out)
-    : tbb::task(),
-      m_graph(graph),
+    : m_graph(graph),
       m_start_node(start_node),
       my_queue(),
       m_visited(visited),
@@ -69,10 +69,11 @@ public:
     {
     }
 
-    tbb::task* execute()
+    void operator()() const
     {
         std::vector<luint_t> my_path;
         std::set<luint_t> my_neighbors;
+        uint_t atomic_tmp;
 
         /**
          * do a standard BFS, stop once all neighbours have been visited
@@ -83,8 +84,9 @@ public:
             const luint_t cur_node = my_queue.front();
             my_queue.pop();
 
-            if((*m_visited)[cur_node].compare_and_swap(
-                (luint_t) 1, (luint_t) 0) == (luint_t) 0)
+            atomic_tmp = (uint_t) 0;
+            if((*m_visited)[cur_node].compare_exchange_strong(
+                atomic_tmp, (uint_t) 1))
             {
                 /**
                  * first thread to visit that node, hence iterate over
@@ -98,7 +100,7 @@ public:
                  * Exploit m_visited as spinlock - 1 means currently
                  * visited, 2 means finished processing.
                  */
-                (*m_visited)[cur_node] = (luint_t) 2;
+                (*m_visited)[cur_node] = (uint_t) 2;
 
                 for(const luint_t e_id : m_graph->inc_edges(cur_node))
                 {
@@ -127,18 +129,16 @@ public:
         if (my_path.size() > 0)
             m_complet_out->push_back(complet(my_path, m_start_node,
                 my_neighbors));
-
-        return NULL;
     }
 
 protected:
-    Graph<COSTTYPE> * m_graph;
-    luint_t m_start_node;
-    std::queue<luint_t> my_queue;
-    std::vector<tbb::atomic<uint_t>> * m_visited;
-    std::vector<luint_t> * m_components;
-    tbb::atomic<luint_t> * m_nodes_left;
-    tbb::concurrent_vector<complet> * m_complet_out;
+    const Graph<COSTTYPE> * m_graph;
+    const luint_t m_start_node;
+    mutable std::queue<luint_t> my_queue;
+    mutable std::vector<std::atomic<uint_t>> * m_visited;
+    mutable std::vector<luint_t> * m_components;
+    mutable std::atomic<luint_t> * m_nodes_left;
+    mutable tbb::concurrent_vector<complet> * m_complet_out;
 };
 
 /**
@@ -185,7 +185,6 @@ add_edge(
     const luint_t node_a,
     const luint_t node_b,
     const COSTTYPE weight)
-throw()
 {
     if(std::max(node_a, node_b) >= m_num_nodes)
         throw std::runtime_error("Graph::add_edge: "
@@ -343,23 +342,29 @@ update_components()
          */
 
         tbb::concurrent_vector<complet> accrued_complets;
-        std::vector<tbb::atomic<uint_t>> visited(m_nodes.size());
+        std::vector<std::atomic<uint_t>> visited(m_nodes.size());
         for (uint_t i = 0; i < m_nodes.size(); ++i)
             visited[i] = 0;
-        tbb::atomic<luint_t> nodes_left;
+        std::atomic<luint_t> nodes_left;
         nodes_left = (luint_t) m_nodes.size();
 
         /* find random oder for start nodes */
         std::vector<luint_t> nodes(m_nodes.size());
         std::iota(nodes.begin(), nodes.end(), 0);
+#if __cplusplus > 201100L
+        std::random_device rd;
+        std::mt19937 g(rd());
+        std::shuffle(nodes.begin(), nodes.end(), g);
+#else
         std::random_shuffle(nodes.begin(), nodes.end());
+#endif
 
         tbb::blocked_range<luint_t> node_range(0, m_nodes.size(), 32);
         while(nodes_left > 0)
         {
             /* select start nodes for this round of BFS */
             std::vector<luint_t> start_nodes(BFS_ROOTS);
-            tbb::atomic<luint_t> start_nodes_selected;
+            std::atomic<luint_t> start_nodes_selected;
             start_nodes_selected = (luint_t) 0;
 
             tbb::parallel_for(node_range,
@@ -386,21 +391,26 @@ update_components()
             /* create tasks */
             const luint_t s_nodes = start_nodes_selected;
             const luint_t real_tasks = (std::min)((luint_t) BFS_ROOTS, s_nodes);
-            tbb::task_list round_tasks;
+
+            std::vector<std::unique_ptr<LazyBFSTask<COSTTYPE>>> tasks;
             for(uint_t i = 0; i < real_tasks; ++i)
             {
-                round_tasks.push_back(*new(tbb::task::allocate_root())
-                    LazyBFSTask<COSTTYPE>(
+                tasks.emplace_back(std::unique_ptr<LazyBFSTask<COSTTYPE>>(
+                        new LazyBFSTask<COSTTYPE>(
                         start_nodes[i],
                         this,
                         &visited,
                         &m_components,
                         &nodes_left,
-                        &accrued_complets));
+                        &accrued_complets)));
             }
 
-            /* spawn tasks and wait for completion */
-            tbb::task::spawn_root_and_wait(round_tasks);
+            /* run tasks */
+            tbb::task_group tg;
+            for(uint_t i = 0; i < real_tasks; ++i)
+                tg.run(*tasks[i]);
+            
+            tg.wait();
         }
 
         /* find unique ID mapping for components */

@@ -13,17 +13,17 @@
 #include <memory>
 #include <vector>
 
-#include "tbb/blocked_range.h"
-#include "tbb/concurrent_vector.h"
-#include "tbb/tbb_allocator.h"
+#include <oneapi/tbb/blocked_range.h>
+#include <oneapi/tbb/concurrent_vector.h>
+#include <oneapi/tbb/tbb_allocator.h>
 
-#include "header/defines.h"
-#include "header/tree.h"
-#include "header/vector_types.h"
-#include "header/vector_math.h"
-#include "header/costs.h"
-#include "header/tree_optimizer.h"
-#include "header/parallel_templates.h"
+#include <mapmap/header/defines.h>
+#include <mapmap/header/tree.h>
+#include <mapmap/header/vector_types.h>
+#include <mapmap/header/vector_math.h>
+#include <mapmap/header/costs.h>
+#include <mapmap/header/tree_optimizer.h>
+#include <mapmap/header/parallel_templates.h>
 
 NS_MAPMAP_BEGIN
 
@@ -78,7 +78,7 @@ public:
     ~CombinatorialDynamicProgramming();
 
     _s_t<COSTTYPE, SIMDWIDTH> optimize(
-        std::vector<_iv_st<COSTTYPE, SIMDWIDTH>>& solution) throw();
+        std::vector<_iv_st<COSTTYPE, SIMDWIDTH>>& solution);
 
 protected:
     void discover_leaves();
@@ -119,6 +119,6 @@ protected:
 
 NS_MAPMAP_END
 
-#include "source/dynamic_programming.impl.h"
+#include <mapmap/source/dynamic_programming.impl.h>
 
 #endif /* __MAPMAP_DYNAMIC_PROGRAMMING_H_ */

@@ -7,7 +7,7 @@
  * of the BSD license. See the LICENSE file for details.
  */
 
-#include "header/cost_instances/pairwise_truncated_quadratic.h"
+#include <mapmap/header/cost_instances/pairwise_truncated_quadratic.h>
 
 NS_MAPMAP_BEGIN
 
@@ -93,7 +93,7 @@ const
 {
     std::unique_ptr<PairwiseCosts<COSTTYPE, SIMDWIDTH>> uptr(new
         PairwiseTruncatedQuadratic<COSTTYPE, SIMDWIDTH>(m_c, m_label_diff_cap));
-    return std::move(uptr);
+    return uptr;
 }
 
 /* ************************************************************************** */

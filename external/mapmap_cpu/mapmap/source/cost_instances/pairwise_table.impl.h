@@ -7,12 +7,12 @@
  * of the BSD license. See the LICENSE file for details.
  */
 
-#include "header/cost_instances/pairwise_table.h"
+#include <mapmap/header/cost_instances/pairwise_table.h>
 
 #include <limits>
 #include <iostream>
 
-#include "header/parallel_templates.h"
+#include <mapmap/header/parallel_templates.h>
 
 NS_MAPMAP_BEGIN
 
@@ -98,9 +98,12 @@ set_costs(
 
     /* expand table into aligned storage */
     for(_iv_st<COSTTYPE, SIMDWIDTH> li_a = 0; li_a < len_a; ++li_a)
-        std::copy(&packed_table[li_a * len_b], 
-            &packed_table[(li_a + 1) * len_b],
-            &m_packed_table[li_a * padded_b]);
+    {
+        std::copy(
+            packed_table.begin() + (li_a * len_b), 
+            packed_table.begin() + ((li_a + 1) * len_b),
+            m_packed_table + (li_a * padded_b));
+    }
 }
 
 /* ************************************************************************** */
@@ -137,7 +140,7 @@ const
         pwtab->get_raw_costs());
 
     std::unique_ptr<PairwiseCosts<COSTTYPE, SIMDWIDTH>> uptr(pwtab);
-    return std::move(uptr);
+    return uptr;
 }
 
 /* ************************************************************************** */

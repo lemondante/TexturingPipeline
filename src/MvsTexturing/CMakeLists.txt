@@ -14,9 +14,9 @@ include_directories(${LIBIGL_DIR}/include)
 include_directories(${SOURCE_DIR}/MeshPolyRefinement)
 include_directories(${SOURCE_DIR}/MvsTexturing)
 
-set(TBB_INCLUDE_DIRS "/usr/local/opt/tbb@2020/include")
-set(TBB_LIBRARY "/usr/local/opt/tbb@2020/lib")
-set(TBB_LIBRARIES "/usr/local/opt/tbb@2020/lib/libtbb.dylib")
+set(TBB_INCLUDE_DIRS "/usr/local/include/tbb")
+set(TBB_LIBRARY "/usr/local/lib")
+set(TBB_LIBRARIES "/usr/local/lib/libtbb.so")
 
 set(MvsTexturingLibrary MvsTexturing-Library)
 add_library(${MvsTexturingLibrary} ${SOURCES})
